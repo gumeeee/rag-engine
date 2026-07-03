@@ -151,31 +151,43 @@ curl http://localhost:8080/metrics
 
 ## Performance
 
-### Latency by Corpus Size
+> **Tested on:** NVIDIA Tesla T4 (15.6 GB, CUDA 12.8)
+> **Model:** sentence-transformers/all-MiniLM-L6-v2 (384 dimensions)
+> **Index:** FAISS HNSW (M=32, efConstruction=40, efSearch=64)
 
-| Corpus Size | p50 | p95 | p99 |
-|-------------|-----|-----|-----|
-| 10K docs | 18ms | 32ms | 45ms |
-| 100K docs | 25ms | 48ms | 68ms |
-| 1M docs | 42ms | 78ms | 102ms |
-
-### Throughput (Batching Improvement)
+### Batching Throughput (Measured)
 
 | Batch Size | QPS | Speedup vs Naive |
 |------------|-----|------------------|
-| 1 (naive) | 42 | 1.0x |
-| 16 | 192 | 4.5x |
-| 32 | 263 | 6.2x |
-| 64 | 294 | 7.0x |
+| 1 (naive) | ~170 | 1.0x |
+| 8 | 714 | **4.2x** |
+| 16 | 1,837 | **10.8x** |
+| 32 | 2,408 | **14.2x** |
+| 64 | 2,827 | **16.7x** |
 
-### Latency Breakdown (1M corpus, p50 query)
+### Search Latency (Measured - 100 queries)
+
+| Percentile | Time |
+|------------|------|
+| p50 | **5.82ms** |
+| p95 | **6.66ms** |
+| p99 | **9.51ms** |
+
+### Latency by Corpus Size (Projected)
+
+| Corpus Size | p50 | p95 | p99 |
+|-------------|-----|-----|-----|
+| 10K docs | ~5ms | ~7ms | ~10ms |
+| 100K docs | ~10ms | ~20ms | ~30ms |
+| 1M docs | ~30ms | ~50ms | ~80ms |
+
+### Latency Breakdown (Per Query)
 
 | Stage | Time | % Total |
 |-------|------|---------|
-| Embedding (batched) | 8ms | 47% |
-| FAISS HNSW search | 6ms | 35% |
-| Result enrichment | 2ms | 12% |
-| Network overhead | 1ms | 6% |
+| Embedding (GPU batched) | ~3ms | 50% |
+| FAISS HNSW search | ~2ms | 35% |
+| Result enrichment | ~1ms | 15% |
 
 ## Corpus Preparation
 
