@@ -1,0 +1,49 @@
+# Build artifacts
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+
+# Compiled binaries
+rag-engine
+rag-engine-tests
+
+# Dependencies (downloaded at build time)
+vcpkg_installed/
+
+# ONNX models (download at setup)
+models/*.onnx
+
+# Generated corpus files
+data/corpus/*.corpus
+data/indices/*.index
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local planning artifacts (keep local only)
+planning_artifacts/
+.kilo/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Test outputs
+test_results/
