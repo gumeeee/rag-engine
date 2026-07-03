@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  rag-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: rag-engine:dev
+    container_name: rag-engine-dev
+    volumes:
+      - .:/workspace
+      - ./data:/app/data
+      - ./models:/app/models
+      - ./config:/app/config
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - RAG_CONFIG_PATH=/app/config/default_config.pb.txt
+      - RAG_LOG_LEVEL=debug
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    ports:
+      - "8080:8080"
+      - "2222:22"  # SSH for debugging
+    shm_size: '8gb'  # Shared memory for CUDA
+    stdin_open: true
+    tty: true

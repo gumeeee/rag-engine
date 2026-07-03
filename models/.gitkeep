@@ -1,0 +1,6 @@
+# Placeholder for ONNX model files
+# Download the model from HuggingFace:
+# https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2
+
+# To download:
+# python3 -c "from sentence_transformers import SentenceTransformer; model = SentenceTransformer('all-MiniLM-L6-v2'); model.save('./models/all-MiniLM-L6-v2')"

@@ -1,0 +1,36 @@
+# RAG Inference Engine - Development Dockerfile
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+# Install development dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    ninja-build \
+    libuv1-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    python3 \
+    python3-pip \
+    valgrind \
+    gdb \
+    linux-tools-generic \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+RUN pip3 install --no-cache-dir \
+    numpy \
+    sentence-transformers \
+    onnxruntime \
+    onnx \
+    requests
+
+# Install vcpkg
+RUN git clone https://github.com/Microsoft/vcpkg.git /vcpkg && \
+    /vcpkg/bootstrap-vcpkg.sh
+
+# Set up workspace
+WORKDIR /workspace
+
+# Default command
+CMD ["/bin/bash"]
