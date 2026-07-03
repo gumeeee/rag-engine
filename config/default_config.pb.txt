@@ -1,0 +1,34 @@
+# RAG Engine Configuration
+# Default configuration for production deployment
+
+# Server settings
+server.port = 8080
+server.num_threads = 4
+server.backlog = 128
+
+# Embedding model settings
+embedding.model_path = ./models/all-MiniLM-L6-v2.onnx
+embedding.batch_size = 32
+embedding.max_seq_length = 256
+embedding.use_cuda = true
+embedding.cuda_device_id = 0
+embedding.dimension = 384
+
+# Search index settings
+search.index_path = ./data/indices/default.index
+search.corpus_path = ./data/corpus/corpus.pb
+search.ef_search = 64
+search.num_results = 10
+search.m_parameter = 32
+search.ef_construction = 40
+
+# Query batcher settings
+batcher.max_batch_size = 32
+batcher.max_wait_ms = 10
+batcher.num_dispatcher_threads = 1
+
+# Observability settings
+observability.enable_tracing = true
+observability.enable_prometheus = true
+observability.log_level = info
+observability.log_file =
