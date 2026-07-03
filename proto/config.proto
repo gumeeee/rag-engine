@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package rag_engine;
+
+message RAGConfig {
+    ServerConfig server = 1;
+    EmbeddingConfig embedding = 2;
+    SearchConfig search = 3;
+    BatcherConfig batcher = 4;
+    ObservabilityConfig observability = 5;
+}
+
+message ServerConfig {
+    int32 port = 1;
+    int32 num_threads = 2;
+    int32 backlog = 3;
+}
+
+message EmbeddingConfig {
+    string model_path = 1;
+    int32 batch_size = 2;
+    int32 max_seq_length = 3;
+    bool use_cuda = 4;
+    int32 cuda_device_id = 5;
+    int32 dimension = 6;
+}
+
+message SearchConfig {
+    string index_path = 1;
+    string corpus_path = 2;
+    int32 ef_search = 3;
+    int32 num_results = 4;
+    int32 m_parameter = 5;
+    int32 ef_construction = 6;
+}
+
+message BatcherConfig {
+    int32 max_batch_size = 1;
+    int32 max_wait_ms = 2;
+    int32 num_dispatcher_threads = 3;
+}
+
+message ObservabilityConfig {
+    bool enable_tracing = 1;
+    bool enable_prometheus = 2;
+    string log_level = 3;
+    string log_file = 4;
+}
