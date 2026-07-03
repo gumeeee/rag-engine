@@ -7,11 +7,5 @@
     "spdlog",
     "gtest",
     "nlohmann-json"
-  ],
-  "features": {
-    "onnxruntime": {
-      "uses": ["cuda"],
-      "platforms": ["linux"]
-    }
-  }
+  ]
 }
