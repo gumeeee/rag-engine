@@ -47,12 +47,15 @@ Production-grade Retrieval-Augmented Generation pipeline with sub-50ms latency f
 ### Build
 
 ```bash
-# Clone repository
-git clone https://github.com/your-org/rag-engine.git
-cd rag-engine
-
 # Build production image
 docker build -t rag-engine .
+```
+
+### Build with Benchmark Script
+
+```bash
+# Build + run with GPU, auto-benchmark
+./scripts/benchmark-cpp.sh --build --gpu
 ```
 
 ### Run
@@ -202,7 +205,17 @@ python scripts/generate_embeddings.py \
 
 ## Benchmarking
 
-Run latency benchmarks:
+### C++ with Docker (Recommended)
+
+```bash
+# Full benchmark with GPU
+./scripts/benchmark-cpp.sh --build --gpu
+
+# Quick test (already built)
+./scripts/benchmark-cpp.sh --gpu
+```
+
+### Python Benchmarks
 
 ```bash
 python scripts/benchmark.py \
@@ -211,13 +224,50 @@ python scripts/benchmark.py \
     --concurrency 10
 ```
 
-Run batching comparison:
+### Batching Comparison
 
 ```bash
 python scripts/benchmark_batching.py \
     --model ./models/all-MiniLM-L6-v2.onnx \
     --num-queries 100
 ```
+
+## Testing with Google Colab
+
+For GPU testing without local setup, use the Jupyter notebooks:
+
+### Python Notebook (Recommended - Validated)
+Tests all core functionality with GPU acceleration.
+
+```bash
+# Open in Colab
+# https://github.com/gumeeee/rag-engine/blob/main/scripts/rag-engine-colab.ipynb
+```
+
+**Results validated:**
+- GPU Tesla T4: Working
+- Batching: 16.7x speedup
+- Latency p99: 9.51ms
+- FAISS HNSW: Working
+
+### C++ Notebook
+Documentation and local build instructions.
+```bash
+# Open in Colab
+# https://github.com/gumeeee/rag-engine/blob/main/scripts/rag-engine-cpp-colab.ipynb
+```
+
+> Note: Full C++ GPU build requires local Docker due to Colab limitations.
+
+## Scripts Reference
+
+| Script | Purpose | Usage |
+|--------|---------|-------|
+| `build.sh` | Build Docker images | `./scripts/build.sh dev\|prod\|test\|clean` |
+| `benchmark-cpp.sh` | Benchmark C++ with Docker | `./scripts/benchmark-cpp.sh --build --gpu` |
+| `benchmark.py` | Latency benchmarks | `python scripts/benchmark.py --queries 100` |
+| `benchmark_batching.py` | Batching comparison | `python scripts/benchmark_batching.py --num-queries 100` |
+| `generate_embeddings.py` | Corpus preparation | `python scripts/generate_embeddings.py --corpus-dir ./data/corpus` |
 
 ## Tech Stack
 
