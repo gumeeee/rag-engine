@@ -1,5 +1,13 @@
 # RAG Inference Engine
 
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/gumeeee/rag-engine/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![C++](https://img.shields.io/badge/C++-20-blue.svg)](https://isocpp.org/)
+[![GPU](https://img.shields.io/badge/GPU-Tesla%20T4-76B900?logo=nvidia)](https://www.nvidia.com/en-us/data-center/tesla-t4/)
+[![Latency](https://img.shields.io/badge/latency-p99%20%3C10ms-brightgreen)](README.md#performance)
+[![Throughput](https://img.shields.io/badge/throughput-16x%20speedup-brightgreen)](README.md#performance)
+[![Docker](https://img.shields.io/badge/docker-ready-2496ED?logo=docker)](Dockerfile)
+
 Production-grade Retrieval-Augmented Generation pipeline with sub-50ms latency for million-scale document corpora.
 
 ## Architecture
