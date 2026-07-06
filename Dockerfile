@@ -44,8 +44,8 @@ COPY src/ ./src/
 COPY tests/ ./tests/
 COPY config/ ./config/
 
-# Build dependencies and project
-RUN /vcpkg/vcpkg install faiss onnxruntime libuv protobuf spdlog nlohmann-json && \
+# Build dependencies and project (vcpkg.json defines packages)
+RUN /vcpkg/vcpkg install --triplet x64-linux && \
     cmake . -DCMAKE_BUILD_TYPE=Release \
            -DCMAKE_TOOLCHAIN_FILE=/vcpkg/scripts/buildsystems/vcpkg.cmake \
            -DVCPKG_TARGET_TRIPLET=x64-linux && \
