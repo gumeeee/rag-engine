@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     tar \
     wget \
-    unzip \
+    pkg-config \
     libuv1-dev \
     libprotobuf-dev \
     protobuf-compiler \
