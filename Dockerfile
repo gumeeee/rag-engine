@@ -1,69 +1,64 @@
 # syntax=docker/dockerfile:1.4
 # RAG Inference Engine - Production Dockerfile
 
-# Stage 1: Build
-FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS base
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
 
-# Install runtime dependencies
+WORKDIR /app
+
+# Install all dependencies in one layer
 RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    git \
+    wget \
+    unzip \
     libuv1-dev \
     libprotobuf-dev \
     protobuf-compiler \
+    libgoogle-glog-dev \
+    g++ \
+    ninja-build \
+    libomp-dev \
     python3 \
     python3-pip \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Stage 2: Build dependencies
-FROM base AS builder
+# Install vcpkg (lightweight build)
+RUN git clone --depth 1 https://github.com/Microsoft/vcpkg.git /vcpkg && \
+    /vcpkg/bootstrap-vcpkg.sh && rm -rf /vcpkg/.git
 
-WORKDIR /build
+# Set vcpkg in PATH
+ENV VCPKG_ROOT=/vcpkg
+ENV PATH=/vcpkg:$PATH
 
-# Install vcpkg
-RUN git clone https://github.com/Microsoft/vcpkg.git /vcpkg && \
-    /vcpkg/bootstrap-vcpkg.sh
-
-# Copy build files
+# Copy source files
 COPY vcpkg.json CMakeLists.txt ./
 COPY proto/ ./proto/
 COPY include/ ./include/
 COPY src/ ./src/
+COPY tests/ ./tests/
 COPY config/ ./config/
 
-# Build dependencies with vcpkg
-ENV VCPKG_ROOT=/vcpkg
-RUN /vcpkg/vcpkg install
-
-# Configure and build
-RUN cmake . -DCMAKE_BUILD_TYPE=Release && \
+# Build dependencies and project
+RUN /vcpkg/vcpkg install faiss onnxruntime libuv protobuf spdlog nlohmann-json && \
+    cmake . -DCMAKE_BUILD_TYPE=Release \
+           -DCMAKE_TOOLCHAIN_FILE=/vcpkg/scripts/buildsystems/vcpkg.cmake \
+           -DVCPKG_TARGET_TRIPLET=x64-linux && \
     cmake --build . --config Release -j$(nproc)
 
-# Stage 3: Runtime
-FROM base AS runtime
-
-WORKDIR /app
-
-# Create directories for data
-RUN mkdir -p /app/data/corpus /app/data/models
-
-# Copy binary and configs
-COPY --from=builder /build/rag-engine ./
+# Runtime setup
 COPY config/ ./config/
-COPY models/ ./models/
 
-# Data directory will be mounted at runtime
-# COPY data/ ./data/
-
-# Environment variables
+# Environment
 ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
-ENV CUDA_VISIBLE_DEVICES=0
 ENV RAG_LOG_LEVEL=info
 
-# Expose HTTP port
-EXPOSE 8080
-
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+
+EXPOSE 8080
 
 ENTRYPOINT ["./rag-engine"]
 CMD ["--config", "/app/config/default_config.pb.txt"]
