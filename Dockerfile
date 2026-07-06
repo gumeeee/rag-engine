@@ -10,6 +10,10 @@ RUN apt-get update && apt-get install -y \
     cmake \
     build-essential \
     git \
+    curl \
+    zip \
+    unzip \
+    tar \
     wget \
     unzip \
     libuv1-dev \
