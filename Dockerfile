@@ -42,11 +42,16 @@ FROM base AS runtime
 
 WORKDIR /app
 
+# Create directories for data
+RUN mkdir -p /app/data/corpus /app/data/models
+
 # Copy binary and configs
 COPY --from=builder /build/rag-engine ./
 COPY config/ ./config/
 COPY models/ ./models/
-COPY data/ ./data/
+
+# Data directory will be mounted at runtime
+# COPY data/ ./data/
 
 # Environment variables
 ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
