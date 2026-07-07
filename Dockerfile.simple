@@ -28,10 +28,13 @@ COPY . /app/
 # Generate protobuf
 RUN protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto || true
 
-# Build using minimal CMakeLists (no FAISS/ONNX required)
+# Copy CMakeLists.simple.txt as main CMakeLists.txt for this build
+RUN cp /app/CMakeLists.simple.txt /app/CMakeLists.txt
+
+# Build
 RUN rm -rf /app/build && mkdir -p /app/build && \
     cd /app/build && \
-    cmake ../CMakeLists.simple.txt -DCMAKE_BUILD_TYPE=Release && \
+    cmake /app -DCMAKE_BUILD_TYPE=Release && \
     cmake --build . -j$(nproc)
 
 # Runtime
