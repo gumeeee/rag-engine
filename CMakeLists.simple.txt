@@ -1,0 +1,77 @@
+cmake_minimum_required(VERSION 3.22)
+project(rag-engine VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Release)
+
+# Find system packages
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(libuv REQUIRED libuv)
+pkg_check_modules(protobuf REQUIRED protobuf)
+pkg_check_modules(glog REQUIRED libgoogle-glog)
+pkg_check_modules(spdlog REQUIRED libspdlog)
+
+# Find nlohmann_json (optional)
+find_package(nlohmann_json QUIET)
+if(NOT nlohmann_json_FOUND)
+    # Fallback: header-only, no find needed
+    message(STATUS "nlohmann_json not found as package, using header-only")
+endif()
+
+find_package(Threads REQUIRED)
+
+# Include directories
+include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/generated)
+
+# Source files
+file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_SOURCE_DIR}/src/common/*.cpp")
+file(GLOB_RECURSE SEARCH_SOURCES "${CMAKE_SOURCE_DIR}/src/search/*.cpp")
+file(GLOB_recurse PIPELINE_SOURCES "${CMAKE_SOURCE_DIR}/src/pipeline/*.cpp")
+file(GLOB_RECURSE API_SOURCES "${CMAKE_SOURCE_DIR}/src/api/*.cpp")
+file(GLOB_RECURSE OBS_SOURCES "${CMAKE_SOURCE_DIR}/src/observability/*.cpp")
+
+# CPU-only embedding (stub)
+set(EMBEDDING_SOURCES "${CMAKE_SOURCE_DIR}/src/embedding/cpu_embedding.cpp")
+
+# Combine all sources
+set(ALL_SOURCES
+    ${COMMON_SOURCES}
+    ${SEARCH_SOURCES}
+    ${PIPELINE_SOURCES}
+    ${API_SOURCES}
+    ${OBS_SOURCES}
+    ${EMBEDDING_SOURCES}
+)
+
+# Main executable
+add_executable(rag-engine
+    ${CMAKE_SOURCE_DIR}/src/main.cpp
+    ${ALL_SOURCES}
+)
+
+target_include_directories(rag-engine PRIVATE
+    ${libuv_INCLUDE_DIRS}
+    ${protobuf_INCLUDE_DIRS}
+    ${glog_INCLUDE_DIRS}
+    ${spdlog_INCLUDE_DIRS}
+)
+
+target_link_libraries(rag-engine PRIVATE
+    Threads::Threads
+    ${libuv_LIBRARIES}
+    ${protobuf_LIBRARIES}
+    ${glog_LIBRARIES}
+    ${spdlog_LIBRARIES}
+    dl
+)
+
+if(nlohmann_json_FOUND)
+    target_link_libraries(rag-engine PRIVATE nlohmann_json::nlohmann_json)
+else()
+    target_include_directories(rag-engine PRIVATE ${CMAKE_SOURCE_DIR}/include)
+endif()
+
+# Installation
+install(TARGETS rag-engine RUNTIME DESTINATION bin)
