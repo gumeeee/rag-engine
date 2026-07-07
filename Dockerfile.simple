@@ -36,8 +36,8 @@ RUN protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto || true
 # Build
 RUN rm -rf /app/build && mkdir -p /app/build && \
     cd /app/build && \
-    cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build . -j$(nproc)
+    /usr/bin/cmake .. -DCMAKE_BUILD_TYPE=Release && \
+    /usr/bin/cmake --build . -j$(nproc)
 
 # Runtime
 WORKDIR /app
