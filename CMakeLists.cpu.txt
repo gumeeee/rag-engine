@@ -1,0 +1,81 @@
+cmake_minimum_required(VERSION 3.20)
+project(rag-engine VERSION 1.0.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE Release)
+
+# System libraries
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(libuv REQUIRED libuv)
+pkg_check_modules(protobuf REQUIRED protobuf)
+pkg_check_modules(glog REQUIRED libgoogle-glog)
+pkg_check_modules(spdlog REQUIRED spdlog)
+
+# Optional packages (not required for basic build)
+find_package(nlohmann_json QUIET)
+find_package(Threads REQUIRED)
+
+# Generate protobuf
+find_program(PROTOC protoc)
+if(NOT PROTOC)
+    message(WARNING "protoc not found, protobuf generation skipped")
+endif()
+
+# Source files
+file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/common/*.cpp")
+file(GLOB_RECURSE SEARCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/search/*.cpp")
+file(GLOB_RECURSE PIPELINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/pipeline/*.cpp")
+file(GLOB_RECURSE API_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/api/*.cpp")
+file(GLOB_RECURSE OBS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/observability/*.cpp")
+
+# Main library
+add_library(rag_engine_lib STATIC
+    ${COMMON_SOURCES}
+    ${SEARCH_SOURCES}
+    ${PIPELINE_SOURCES}
+    ${API_SOURCES}
+    ${OBS_SOURCES}
+)
+
+target_include_directories(rag_engine_lib PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
+
+target_link_libraries(rag_engine_lib PUBLIC
+    Threads::Threads
+    nlohmann_json::nlohmann_json
+)
+
+target_link_libraries(rag_engine_lib PRIVATE
+    ${libuv_INCLUDE_DIRS}
+    ${libuv_LIBRARIES}
+    ${protobuf_INCLUDE_DIRS}
+    ${protobuf_LIBRARIES}
+    ${glib_LIBRARY}
+    ${spdlog_INCLUDE_DIRS}
+    ${spdlog_LIBRARIES}
+)
+
+# Embedding sources (CPU-only stub)
+set(EMBEDDING_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/embedding/cpu_embedding.cpp")
+add_library(embedding_lib STATIC ${EMBEDDING_SOURCES})
+target_include_directories(embedding_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# Main executable
+add_executable(rag-engine "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
+target_link_libraries(rag-engine PRIVATE rag_engine_lib embedding_lib)
+
+# Generate protobuf headers
+if(PROTOC AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/proto")
+    execute_process(
+        COMMAND ${PROTOC} --cpp_out=${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/config.proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/rag_service.proto
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
+
+# Installation
+install(TARGETS rag-engine RUNTIME DESTINATION bin)

@@ -1,0 +1,45 @@
+# RAG Inference Engine - Minimal CPU Dockerfile
+# Fast build using system libraries only
+
+FROM ubuntu:22.04
+
+WORKDIR /app
+
+# Install minimal dependencies
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    git \
+    libuv1-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libgoogle-glog-dev \
+    libspdlog-dev \
+    libnlohmann-json-dev \
+    libgtest-dev \
+    libgmock-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy source
+COPY . /app/
+
+# Generate protobuf
+RUN protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto || true
+
+# Build
+RUN mkdir -p build && cd build && \
+    cmake .. -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build . -j$(nproc)
+
+# Runtime
+WORKDIR /app
+ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
+ENV RAG_LOG_LEVEL=info
+ENV RAG_USE_CUDA=false
+
+EXPOSE 8080
+
+ENTRYPOINT ["./build/rag-engine"]
+CMD ["--config", "/app/config/default_config.pb.txt"]

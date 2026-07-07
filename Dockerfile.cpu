@@ -1,0 +1,57 @@
+# syntax=dockerfile:1.4
+# RAG Inference Engine - CPU-Only Dockerfile
+# Fast build for testing without GPU
+
+FROM ubuntu:22.04
+
+WORKDIR /app
+
+# Install dependencies (CPU-only, fast)
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    git \
+    libuv1-dev \
+    libprotobuf-dev \
+    protobuf-compiler \
+    libgoogle-glog-dev \
+    g++ \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install vcpkg (lightweight)
+RUN git clone --depth 1 https://github.com/Microsoft/vcpkg.git /vcpkg && \
+    /vcpkg/bootstrap-vcpkg.sh && rm -rf /vcpkg/.git
+
+ENV VCPKG_ROOT=/vcpkg
+ENV PATH=/vcpkg:$PATH
+
+# Copy source files
+COPY vcpkg.json CMakeLists.txt ./
+COPY proto/ ./proto/
+COPY include/ ./include/
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY config/ ./config/
+
+# Build with CPU-only libraries (no CUDA, no FAISS with GPU support)
+# Using system libuv and protobuf
+RUN cmake . -DCMAKE_BUILD_TYPE=Release \
+           -DUSE_SYSTEM_LIBS=ON \
+           -DUSE_CPU_EMBEDDING=ON && \
+    cmake --build . --config Release -j$(nproc)
+
+# Copy configs
+COPY config/ ./config/
+
+# Environment
+ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
+ENV RAG_LOG_LEVEL=info
+ENV RAG_USE_CUDA=false
+
+EXPOSE 8080
+
+ENTRYPOINT ["./rag-engine"]
+CMD ["--config", "/app/config/default_config.pb.txt"]
