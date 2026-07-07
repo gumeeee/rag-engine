@@ -5,17 +5,12 @@ FROM ubuntu:22.04
 
 WORKDIR /app
 
-# Install CMake 3.28
-RUN apt-get update && apt-get install -y wget && \
-    wget -q https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0-linux-x86_64.tar.gz && \
-    tar -xzf cmake-3.28.0-linux-x86_64.tar.gz -C /usr/bin --strip-components=1 && \
-    rm cmake-3.28.0-linux-x86_64.tar.gz && \
-    apt-get clean
-
-# Install system dependencies
+# Install all dependencies including CMake
 RUN apt-get update && apt-get install -y \
+    cmake \
     build-essential \
     git \
+    curl \
     libuv1-dev \
     libprotobuf-dev \
     protobuf-compiler \
@@ -36,8 +31,8 @@ RUN protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto || true
 # Build
 RUN rm -rf /app/build && mkdir -p /app/build && \
     cd /app/build && \
-    /usr/bin/cmake .. -DCMAKE_BUILD_TYPE=Release && \
-    /usr/bin/cmake --build . -j$(nproc)
+    cmake .. -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build . -j$(nproc)
 
 # Runtime
 WORKDIR /app
