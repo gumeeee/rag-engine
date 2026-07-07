@@ -7,7 +7,11 @@ WORKDIR /app
 
 # Install minimal dependencies
 RUN apt-get update && apt-get install -y \
-    cmake \
+    wget \
+    && wget -q https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0-linux-x86_64.tar.gz \
+    && tar -xzf cmake-3.28.0-linux-x86_64.tar.gz -C /usr/bin --strip-components=1 \
+    && rm cmake-3.28.0-linux-x86_64.tar.gz \
+    && apt-get install -y \
     build-essential \
     git \
     libuv1-dev \
