@@ -9,8 +9,15 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(libuv REQUIRED libuv)
 pkg_check_modules(protobuf REQUIRED protobuf)
-pkg_check_modules(glog REQUIRED libgoogle-glog)
 pkg_check_modules(spdlog REQUIRED libspdlog)
+
+# Find glog (optional - use spdlog logging if not found)
+pkg_check_modules(glog QUIET libgoogle-glog)
+if(glog_FOUND)
+    message(STATUS "Found glog")
+else()
+    message(STATUS "glog not found, using spdlog logging only")
+endif()
 
 # Find nlohmann_json (optional)
 find_package(nlohmann_json QUIET)
@@ -62,10 +69,13 @@ target_link_libraries(rag-engine PRIVATE
     Threads::Threads
     ${libuv_LIBRARIES}
     ${protobuf_LIBRARIES}
-    ${glog_LIBRARIES}
     ${spdlog_LIBRARIES}
     dl
 )
+
+if(glog_FOUND)
+    target_link_libraries(rag-engine PRIVATE ${glog_LIBRARIES})
+endif()
 
 if(nlohmann_json_FOUND)
     target_link_libraries(rag-engine PRIVATE nlohmann_json::nlohmann_json)
