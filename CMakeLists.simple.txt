@@ -5,25 +5,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE Release)
 
-# Find system packages
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(libuv REQUIRED libuv)
-pkg_check_modules(protobuf REQUIRED protobuf)
-pkg_check_modules(spdlog REQUIRED libspdlog)
-
-# Find glog (optional - use spdlog logging if not found)
-pkg_check_modules(glog QUIET libgoogle-glog)
-if(glog_FOUND)
-    message(STATUS "Found glog")
-else()
-    message(STATUS "glog not found, using spdlog logging only")
-endif()
-
-# Find nlohmann_json (optional)
-find_package(nlohmann_json QUIET)
-if(NOT nlohmann_json_FOUND)
-    # Fallback: header-only, no find needed
-    message(STATUS "nlohmann_json not found as package, using header-only")
+# Find packages (all optional)
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(libuv QUIET libuv)
+    pkg_check_modules(protobuf QUIET protobuf)
+    pkg_check_modules(spdlog QUIET libspdlog)
+    pkg_check_modules(glog QUIET libgoogle-glog)
 endif()
 
 find_package(Threads REQUIRED)
@@ -35,7 +23,7 @@ include_directories(${CMAKE_SOURCE_DIR}/generated)
 # Source files
 file(GLOB_RECURSE COMMON_SOURCES "${CMAKE_SOURCE_DIR}/src/common/*.cpp")
 file(GLOB_RECURSE SEARCH_SOURCES "${CMAKE_SOURCE_DIR}/src/search/*.cpp")
-file(GLOB_recurse PIPELINE_SOURCES "${CMAKE_SOURCE_DIR}/src/pipeline/*.cpp")
+file(GLOB_RECURSE PIPELINE_SOURCES "${CMAKE_SOURCE_DIR}/src/pipeline/*.cpp")
 file(GLOB_RECURSE API_SOURCES "${CMAKE_SOURCE_DIR}/src/api/*.cpp")
 file(GLOB_RECURSE OBS_SOURCES "${CMAKE_SOURCE_DIR}/src/observability/*.cpp")
 
@@ -58,30 +46,30 @@ add_executable(rag-engine
     ${ALL_SOURCES}
 )
 
-target_include_directories(rag-engine PRIVATE
-    ${libuv_INCLUDE_DIRS}
-    ${protobuf_INCLUDE_DIRS}
-    ${glog_INCLUDE_DIRS}
-    ${spdlog_INCLUDE_DIRS}
-)
+# Add include directories
+target_include_directories(rag-engine PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(rag-engine PRIVATE
-    Threads::Threads
-    ${libuv_LIBRARIES}
-    ${protobuf_LIBRARIES}
-    ${spdlog_LIBRARIES}
-    dl
-)
+if(libuv_FOUND)
+    target_include_directories(rag-engine PRIVATE ${libuv_INCLUDE_DIRS})
+    target_link_libraries(rag-engine PRIVATE ${libuv_LIBRARIES})
+endif()
+
+if(protobuf_FOUND)
+    target_include_directories(rag-engine PRIVATE ${protobuf_INCLUDE_DIRS})
+    target_link_libraries(rag-engine PRIVATE ${protobuf_LIBRARIES})
+endif()
+
+if(spdlog_FOUND)
+    target_include_directories(rag-engine PRIVATE ${spdlog_INCLUDE_DIRS})
+    target_link_libraries(rag-engine PRIVATE ${spdlog_LIBRARIES})
+endif()
 
 if(glog_FOUND)
+    target_include_directories(rag-engine PRIVATE ${glog_INCLUDE_DIRS})
     target_link_libraries(rag-engine PRIVATE ${glog_LIBRARIES})
 endif()
 
-if(nlohmann_json_FOUND)
-    target_link_libraries(rag-engine PRIVATE nlohmann_json::nlohmann_json)
-else()
-    target_include_directories(rag-engine PRIVATE ${CMAKE_SOURCE_DIR}/include)
-endif()
+target_link_libraries(rag-engine PRIVATE Threads::Threads dl)
 
 # Installation
 install(TARGETS rag-engine RUNTIME DESTINATION bin)
