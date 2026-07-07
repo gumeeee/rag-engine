@@ -6,9 +6,11 @@ FROM ubuntu:22.04
 WORKDIR /app
 
 # Install CMake 3.28
-RUN wget -q https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0-linux-x86_64.tar.gz && \
+RUN apt-get update && apt-get install -y wget && \
+    wget -q https://github.com/Kitware/CMake/releases/download/v3.28.0/cmake-3.28.0-linux-x86_64.tar.gz && \
     tar -xzf cmake-3.28.0-linux-x86_64.tar.gz -C /usr/bin --strip-components=1 && \
-    rm cmake-3.28.0-linux-x86_64.tar.gz
+    rm cmake-3.28.0-linux-x86_64.tar.gz && \
+    apt-get clean
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
