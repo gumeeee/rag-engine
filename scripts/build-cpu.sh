@@ -23,15 +23,16 @@ fi
 cd "$PROJECT_DIR"
 
 # Create build directory
-mkdir -p build && cd build
+rm -rf build-cpu
+mkdir -p build-cpu && cd build-cpu
 
 # Generate protobuf
 echo "Generating protobuf..."
 protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto 2>/dev/null || true
 
-# Configure
+# Configure using the CPU CMakeLists
 echo "Configuring CMake..."
-cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=CMakeLists.cpu.txt
+cmake "$PROJECT_DIR" -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
 
 # Build
 echo "Building..."
@@ -40,5 +41,5 @@ cmake --build . -j$(nproc)
 echo ""
 echo "=================================="
 echo "Build complete!"
-echo "Binary: $PROJECT_DIR/build/rag-engine"
+echo "Binary: $PROJECT_DIR/build-cpu/rag-engine"
 echo "=================================="
