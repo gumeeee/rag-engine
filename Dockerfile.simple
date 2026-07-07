@@ -29,7 +29,7 @@ COPY . /app/
 RUN protoc --cpp_out=include/ proto/config.proto proto/rag_service.proto || true
 
 # Build
-RUN mkdir -p build && cd build && \
+RUN rm -rf /app/build && mkdir -p /app/build && cd /app/build && \
     cmake .. -DCMAKE_BUILD_TYPE=Release && \
     cmake --build . -j$(nproc)
 
