@@ -1,0 +1,70 @@
+# RAG Inference Engine - GPU Build using pip-extracted ONNX Runtime
+# Fast build (~20 min) without vcpkg compilation
+
+# Stage 1: Extract ONNX Runtime GPU
+FROM python:3.10-slim AS ort-extractor
+
+RUN pip install --no-cache-dir onnxruntime-gpu==1.23.2
+
+RUN python -c "import onnxruntime; print(onnxruntime.__file__)" > /ort_path.txt && \
+    ORT_PATH=$(cat /ort_path.txt) && \
+    mkdir -p /opt/onnxruntime/lib && \
+    cp $ORT_PATH/capi/*.so /opt/onnxruntime/lib/ && \
+    cp $ORT_PATH/*.so /opt/onnxruntime/lib/ 2>/dev/null || true && \
+    ls -la /opt/onnxruntime/lib/
+
+# Stage 2: Build
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS builder
+
+WORKDIR /build
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    cmake build-essential gfortran git curl zip unzip tar \
+    pkg-config python3 python3-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy ONNX Runtime libs
+COPY --from=ort-extractor /opt/onnxruntime/lib/ /usr/local/lib/
+
+# Install vcpkg for other deps
+RUN git clone --depth 1 https://github.com/Microsoft/vcpkg.git /vcpkg && \
+    /vcpkg/bootstrap-vcpkg.sh && rm -rf /vcpkg/.git
+
+ENV VCPKG_ROOT=/vcpkg
+
+# Copy source
+COPY vcpkg.json CMakeLists.txt ./
+COPY proto/ ./proto/
+COPY include/ ./include/
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY config/ ./config/
+
+# Build deps (without ONNX Runtime - already have it)
+RUN /vcpkg/vcpkg install --triplet x64-linux \
+    faiss libuv protobuf spdlog nlohmann-json gtest
+
+# Configure and build
+RUN cmake . -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_TOOLCHAIN_FILE=/vcpkg/scripts/buildsystems/vcpkg.cmake \
+    -DVCPKG_TARGET_TRIPLET=x64-linux && \
+    cmake --build . --config Release -j2
+
+# Stage 3: Runtime
+FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04
+
+WORKDIR /app
+
+COPY --from=builder /build/rag-engine ./
+COPY --from=ort-extractor /opt/onnxruntime/lib/ /usr/local/lib/
+COPY config/ ./config/
+
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
+ENV RAG_LOG_LEVEL=info
+
+EXPOSE 8080
+
+ENTRYPOINT ["./rag-engine"]
+CMD ["--config", "/app/config/default_config.pb.txt"]

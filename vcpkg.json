@@ -1,6 +1,5 @@
 {
   "dependencies": [
-    "onnxruntime",
     "faiss",
     "libuv",
     "protobuf",
