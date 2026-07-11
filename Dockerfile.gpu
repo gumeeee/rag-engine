@@ -1,0 +1,52 @@
+# RAG Inference Engine - GPU Build for NVIDIA GPUs
+# Optimized for build with limited resources
+
+FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    git \
+    curl \
+    zip \
+    unzip \
+    tar \
+    pkg-config \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install vcpkg
+RUN git clone --depth 1 https://github.com/Microsoft/vcpkg.git /vcpkg && \
+    /vcpkg/bootstrap-vcpkg.sh && rm -rf /vcpkg/.git
+
+ENV VCPKG_ROOT=/vcpkg
+
+# Copy source files
+COPY vcpkg.json CMakeLists.txt ./
+COPY proto/ ./proto/
+COPY include/ ./include/
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY config/ ./config/
+
+# Build with vcpkg (limited parallelism to reduce memory)
+RUN /vcpkg/vcpkg install --triplet x64-linux && \
+    cmake . -DCMAKE_BUILD_TYPE=Release \
+           -DCMAKE_TOOLCHAIN_FILE=/vcpkg/scripts/buildsystems/vcpkg.cmake \
+           -DVCPKG_TARGET_TRIPLET=x64-linux && \
+    cmake --build . --config Release -j2
+
+# Copy configs
+COPY config/ ./config/
+
+ENV RAG_CONFIG_PATH=/app/config/default_config.pb.txt
+ENV RAG_LOG_LEVEL=info
+
+EXPOSE 8080
+
+ENTRYPOINT ["./rag-engine"]
+CMD ["--config", "/app/config/default_config.pb.txt"]
