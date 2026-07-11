@@ -10,8 +10,7 @@ RUN python -c "import onnxruntime; print(onnxruntime.__file__)" > /ort_path.txt 
     ORT_PATH=$(cat /ort_path.txt) && \
     mkdir -p /opt/onnxruntime/lib && \
     cp $ORT_PATH/capi/*.so /opt/onnxruntime/lib/ && \
-    cp $ORT_PATH/*.so /opt/onnxruntime/lib/ 2>/dev/null || true && \
-    ls -la /opt/onnxruntime/lib/
+    cp $ORT_PATH/*.so /opt/onnxruntime/lib/ 2>/dev/null || true
 
 # Stage 2: Build
 FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS builder
@@ -27,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 # Copy ONNX Runtime libs
 COPY --from=ort-extractor /opt/onnxruntime/lib/ /usr/local/lib/
 
-# Install vcpkg for other deps
+# Install vcpkg for other deps (uses vcpkg.json manifest)
 RUN git clone --depth 1 https://github.com/Microsoft/vcpkg.git /vcpkg && \
     /vcpkg/bootstrap-vcpkg.sh && rm -rf /vcpkg/.git
 
@@ -41,9 +40,8 @@ COPY src/ ./src/
 COPY tests/ ./tests/
 COPY config/ ./config/
 
-# Build deps (without ONNX Runtime - already have it)
-RUN /vcpkg/vcpkg install --triplet x64-linux \
-    faiss libuv protobuf spdlog nlohmann-json gtest
+# Build deps (vcpkg.json manifest mode - no package args needed)
+RUN /vcpkg/vcpkg install --triplet x64-linux
 
 # Configure and build
 RUN cmake . -DCMAKE_BUILD_TYPE=Release \
