@@ -17,10 +17,10 @@ FROM nvidia/cuda:12.4.0-runtime-ubuntu22.04 AS builder
 
 WORKDIR /build
 
-# Install dependencies
+# Install dependencies (including OpenMP)
 RUN apt-get update && apt-get install -y \
     cmake build-essential gfortran git curl zip unzip tar \
-    pkg-config python3 python3-dev && \
+    pkg-config python3 python3-dev libomp-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy ONNX Runtime libs
