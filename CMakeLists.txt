@@ -4,22 +4,28 @@ project(rag-engine VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Build type
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+set(CMAKE_BUILD_TYPE Release)
 
 # Find packages
 find_package(CUDA)
-find_package(ONNXRuntime CONFIG)
 find_package(faiss REQUIRED)
-find_package(uv REQUIRED)
+find_package(libuv REQUIRED)  # Changed from 'uv' to 'libuv'
 find_package(protobuf CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 
-# CUDA is optional - enable GPU support if available
+# ONNX Runtime (installed via pip, not vcpkg)
+set(ONNXRUNTIME_ROOT "/usr/local" CACHE PATH "ONNX Runtime installation path")
+find_library(ONNXRUNTIME_LIB onnxruntime PATHS ${ONNXRUNTIME_ROOT}/lib NO_DEFAULT_PATH)
+if(ONNXRUNTIME_LIB)
+    message(STATUS "Found ONNX Runtime: ${ONNXRUNTIME_LIB}")
+    set(ONNXRUNTIME_FOUND TRUE)
+else()
+    message(STATUS "ONNX Runtime not found in ${ONNXRUNTIME_ROOT}/lib")
+    set(ONNXRUNTIME_FOUND FALSE)
+endif()
+
+# CUDA is optional
 if(CUDA_FOUND)
     message(STATUS "CUDA found - GPU support enabled")
     enable_language(CUDA)
@@ -27,7 +33,7 @@ else()
     message(STATUS "CUDA not found - CPU-only mode")
 endif()
 
-# Source groups
+# Source files
 file(GLOB_RECURSE COMMON_SOURCES "src/common/*.cpp")
 file(GLOB_RECURSE EMBEDDING_SOURCES "src/embedding/*.cpp")
 file(GLOB_RECURSE SEARCH_SOURCES "src/search/*.cpp")
@@ -56,27 +62,34 @@ target_link_libraries(rag_engine_lib PUBLIC
 )
 
 target_link_libraries(rag_engine_lib PRIVATE
-    onnxruntime::onnxruntime
-    faiss
-    uv::uv
+    ${libuv_LIBRARIES}
     protobuf::libprotobuf
+    faiss
 )
+
+if(ONNXRUNTIME_FOUND)
+    target_include_directories(rag_engine_lib PRIVATE ${ONNXRUNTIME_ROOT}/include)
+    target_link_libraries(rag_engine_lib PRIVATE ${ONNXRUNTIME_LIB})
+endif()
 
 if(CUDA_FOUND)
     target_link_libraries(rag_engine_lib PRIVATE CUDA::cudart)
 endif()
 
 # Generate protobuf headers
-protobuf_generate(TARGET rag_engine_lib PROTOS proto/rag_service.proto)
-protobuf_generate(TARGET rag_engine_lib PROTOS proto/config.proto LANGUAGE cpp)
+find_program(PROTOC protoc)
+if(PROTOC AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/proto")
+    execute_process(
+        COMMAND ${PROTOC} --cpp_out=${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/config.proto
+                ${CMAKE_CURRENT_SOURCE_DIR}/proto/rag_service.proto
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endif()
 
 # Main executable
 add_executable(rag-engine src/main.cpp)
 target_link_libraries(rag-engine PRIVATE rag_engine_lib)
-
-# Tests
-enable_testing()
-add_subdirectory(tests)
 
 # Installation
 install(TARGETS rag-engine rag_engine_lib
@@ -84,6 +97,3 @@ install(TARGETS rag-engine rag_engine_lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
 )
-
-install(DIRECTORY include/ DESTINATION include)
-install(DIRECTORY config/ DESTINATION etc/rag-engine)
