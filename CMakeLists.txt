@@ -16,9 +16,13 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # ONNX Runtime (installed via pip, not vcpkg)
 set(ONNXRUNTIME_ROOT "/usr/local" CACHE PATH "ONNX Runtime installation path")
-find_library(ONNXRUNTIME_LIB NAMES onnxruntime PATHS ${ONNXRUNTIME_ROOT}/lib NO_DEFAULT_PATH REQUIRED)
+find_library(ONNXRUNTIME_LIB NAMES onnxruntime PATHS ${ONNXRUNTIME_ROOT}/lib NO_DEFAULT_PATH)
 if(ONNXRUNTIME_LIB)
     message(STATUS "Found ONNX Runtime: ${ONNXRUNTIME_LIB}")
+    set(ONNXRUNTIME_FOUND TRUE)
+else()
+    message(STATUS "ONNX Runtime not found in ${ONNXRUNTIME_ROOT}/lib - will link at runtime")
+    set(ONNXRUNTIME_FOUND FALSE)
 endif()
 
 # CUDA is optional
