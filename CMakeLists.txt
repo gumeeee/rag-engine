@@ -74,7 +74,10 @@ if(ONNXRUNTIME_FOUND)
 endif()
 
 if(CUDA_FOUND)
-    target_link_libraries(rag_engine_lib PRIVATE CUDA::cudart)
+    find_library(CUDA_RUNTIME cudart PATHS ${CUDA_TOOLKIT_ROOT_DIR}/lib64 NO_DEFAULT_PATH)
+    if(CUDA_RUNTIME)
+        target_link_libraries(rag_engine_lib PRIVATE ${CUDA_RUNTIME})
+    endif()
 endif()
 
 # Generate protobuf headers
