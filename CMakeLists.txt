@@ -8,6 +8,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 # Find packages
 find_package(CUDA)
+find_package(OpenMP REQUIRED)
 find_package(faiss REQUIRED)
 find_package(libuv REQUIRED)  # Changed from 'uv' to 'libuv'
 find_package(protobuf CONFIG REQUIRED)
